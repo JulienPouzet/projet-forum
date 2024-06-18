@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type PostsTemplate struct {
@@ -32,17 +33,30 @@ func Posts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	data := PostsTemplate{
-		CurrentUser: currentUser,
-		LoggedIn:    currentUser.UUID != "",
-		Posts:       posts,
-	}
+	// data := PostsTemplate{
+	// 	CurrentUser: currentUser,
+	// 	LoggedIn:    currentUser.UUID != "",
+	// 	Posts:       posts,
+	// }
 
 	tmpl, err := template.ParseFiles("web/pages/posts.html")
 	if err != nil {
 		http.Error(w, "Unable to load template", http.StatusInternalServerError)
 		log.Printf("Template parsing error: %v", err)
 		return
+	}
+
+	var formattedPosts []models.Post
+	for _, p := range posts {
+		formattedContent := template.HTML(strings.ReplaceAll(string(p.Content), "\n", "<br>"))
+		p.Content = formattedContent
+		formattedPosts = append(formattedPosts, p)
+	}
+
+	data := PostsTemplate{
+		CurrentUser: currentUser,
+		LoggedIn:    currentUser.UUID != "",
+		Posts:       formattedPosts,
 	}
 
 	err = tmpl.Execute(w, data)
